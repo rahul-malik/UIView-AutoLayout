@@ -1134,52 +1134,73 @@ static BOOL _al_isExecutingConstraintsBlock = NO;
  Views will be the same size (variable) in the dimension along the axis and will have spacing (fixed) between them.
  
  @param axis The axis along which to distribute the subviews.
- @param spacing The fixed amount of spacing between each subview.
+ @param spacing The fixed amount of spacing between each subview, before the first subview and after the last subview.
  @param alignment The way in which the subviews will be aligned.
  @return An array of constraints added.
  */
 - (NSArray *)autoDistributeViewsAlongAxis:(ALAxis)axis withFixedSpacing:(CGFloat)spacing alignment:(NSLayoutFormatOptions)alignment
 {
-    NSAssert([self al_containsMinimumNumberOfViews:2], @"This array must contain at least 2 views to distribute.");
-    ALDimension matchedDimension;
-    ALEdge firstEdge, lastEdge;
-    switch (axis) {
-        case ALAxisHorizontal:
-        case ALAxisBaseline:
-            matchedDimension = ALDimensionWidth;
-            firstEdge = ALEdgeLeading;
-            lastEdge = ALEdgeTrailing;
-            break;
-        case ALAxisVertical:
-            matchedDimension = ALDimensionHeight;
-            firstEdge = ALEdgeTop;
-            lastEdge = ALEdgeBottom;
-            break;
-        default:
-            NSAssert(nil, @"Not a valid axis.");
-            return nil;
+  return [self autoDistributeViewsAlongAxis:axis withFixedSpacing:spacing withLeadingSpacing:spacing withTrailingSpacing:spacing alignment:alignment];
+}
+
+/**
+ Distributes the views in this array equally along the selected axis in their superview.
+ Views will be the same size (variable) in the dimension along the axis and will have spacing (fixed) between them.
+ Specify leading and trailing space in order to control the spacing from the first and last views from their superview.
+ 
+ @param axis The axis along which to distribute the subviews.
+ @param spacing The fixed amount of spacing between each subview.
+ @param leadingSpacing The fixed amount of spacing before the first subview and its superview.
+ @param trailingSpacing The fixed amount of spacing after the last subview and its superview.
+ @param alignment The way in which the subviews will be aligned.
+ @return An array of constraints added.
+ */
+
+- (NSArray *)autoDistributeViewsAlongAxis:(ALAxis)axis withFixedSpacing:(CGFloat)spacing withLeadingSpacing:(CGFloat)leadingSpacing withTrailingSpacing:(CGFloat)trailingSpacing alignment:(NSLayoutFormatOptions)alignment
+{
+  NSAssert([self al_containsMinimumNumberOfViews:2], @"This array must contain at least 2 views to distribute.");
+  ALDimension matchedDimension;
+  ALEdge firstEdge, lastEdge;
+  switch (axis) {
+    case ALAxisHorizontal:
+    case ALAxisBaseline:
+      matchedDimension = ALDimensionWidth;
+      firstEdge = ALEdgeLeading;
+      lastEdge = ALEdgeTrailing;
+      break;
+    case ALAxisVertical:
+      matchedDimension = ALDimensionHeight;
+      firstEdge = ALEdgeTop;
+      lastEdge = ALEdgeBottom;
+      break;
+    default:
+      NSAssert(nil, @"Not a valid axis.");
+      return nil;
+  }
+  
+  NSMutableArray *constraints = [NSMutableArray new];
+  UIView *previousView = nil;
+  for (id object in self) {
+    if ([object isKindOfClass:[UIView class]]) {
+      UIView *view = (UIView *)object;
+      if (previousView) {
+        // Second, Third, ... View
+        [constraints addObject:[view autoPinEdge:firstEdge toEdge:lastEdge ofView:previousView withOffset:spacing]];
+        [constraints addObject:[view autoMatchDimension:matchedDimension toDimension:matchedDimension ofView:previousView]];
+        [constraints addObject:[view al_alignToView:previousView withOption:alignment forAxis:axis]];
+      }
+      else {
+        // First view
+        [constraints addObject:[view autoPinEdgeToSuperviewEdge:firstEdge withInset:leadingSpacing]];
+      }
+      previousView = view;
     }
-    
-    NSMutableArray *constraints = [NSMutableArray new];
-    UIView *previousView = nil;
-    for (id object in self) {
-        if ([object isKindOfClass:[UIView class]]) {
-            UIView *view = (UIView *)object;
-            if (previousView) {
-                [constraints addObject:[view autoPinEdge:firstEdge toEdge:lastEdge ofView:previousView withOffset:spacing]];
-                [constraints addObject:[view autoMatchDimension:matchedDimension toDimension:matchedDimension ofView:previousView]];
-                [constraints addObject:[view al_alignToView:previousView withOption:alignment forAxis:axis]];
-            }
-            else {
-                [constraints addObject:[view autoPinEdgeToSuperviewEdge:firstEdge withInset:spacing]];
-            }
-            previousView = view;
-        }
-    }
-    if (previousView) {
-        [constraints addObject:[previousView autoPinEdgeToSuperviewEdge:lastEdge withInset:spacing]];
-    }
-    return constraints;
+  }
+  if (previousView) {
+    // Last View
+    [constraints addObject:[previousView autoPinEdgeToSuperviewEdge:lastEdge withInset:trailingSpacing]];
+  }
+  return constraints;
 }
 
 /**
