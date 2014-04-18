@@ -1140,23 +1140,23 @@ static BOOL _al_isExecutingConstraintsBlock = NO;
  */
 - (NSArray *)autoDistributeViewsAlongAxis:(ALAxis)axis withFixedSpacing:(CGFloat)spacing alignment:(NSLayoutFormatOptions)alignment
 {
-  return [self autoDistributeViewsAlongAxis:axis withFixedSpacing:spacing withLeadingSpacing:spacing withTrailingSpacing:spacing alignment:alignment];
+  return [self autoDistributeViewsAlongAxis:axis withFixedSpacing:spacing insetSpacing:YES alignment:alignment];
 }
+
 
 /**
  Distributes the views in this array equally along the selected axis in their superview.
  Views will be the same size (variable) in the dimension along the axis and will have spacing (fixed) between them.
- Specify leading and trailing space in order to control the spacing from the first and last views from their superview.
+ The first and last view can optionally have a leading and trailing inset respectively from their superview by the specified spacing (fixed).
  
  @param axis The axis along which to distribute the subviews.
  @param spacing The fixed amount of spacing between each subview.
- @param leadingSpacing The fixed amount of spacing before the first subview and its superview.
- @param trailingSpacing The fixed amount of spacing after the last subview and its superview.
+ @param shouldSpaceInsets Is the fixed amount of spacing before and after the first and last views respectively.
  @param alignment The way in which the subviews will be aligned.
  @return An array of constraints added.
  */
 
-- (NSArray *)autoDistributeViewsAlongAxis:(ALAxis)axis withFixedSpacing:(CGFloat)spacing withLeadingSpacing:(CGFloat)leadingSpacing withTrailingSpacing:(CGFloat)trailingSpacing alignment:(NSLayoutFormatOptions)alignment
+- (NSArray *)autoDistributeViewsAlongAxis:(ALAxis)axis withFixedSpacing:(CGFloat)spacing insetSpacing:(BOOL)shouldSpaceInsets alignment:(NSLayoutFormatOptions)alignment
 {
   NSAssert([self al_containsMinimumNumberOfViews:2], @"This array must contain at least 2 views to distribute.");
   ALDimension matchedDimension;
@@ -1177,6 +1177,8 @@ static BOOL _al_isExecutingConstraintsBlock = NO;
       NSAssert(nil, @"Not a valid axis.");
       return nil;
   }
+  CGFloat leadingSpacing = shouldSpaceInsets ? spacing : 0;
+  CGFloat trailingSpacing = shouldSpaceInsets ? spacing : 0;
   
   NSMutableArray *constraints = [NSMutableArray new];
   UIView *previousView = nil;
